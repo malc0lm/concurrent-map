@@ -192,6 +192,27 @@ func snapshot(m ConcurrentMap) (chans []chan Tuple) {
 	return chans
 }
 
+func (m ConcurrentMap) SnapshotAndDelete() <-chan Tuple {
+	tuplechan := make(chan Tuple, m.Count()+10)
+	// Foreach shard.
+	for _, shard := range m {
+		// Foreach key, value pair.
+		shard.RLock()
+		for key, val := range shard.items {
+			tuplechan <- Tuple{key, val}
+			delete(shard.items, key)
+		}
+		shard.RUnlock()
+	}
+	close(tuplechan)
+	return tuplechan
+}
+
+// Returns a array of channels that contains elements in each shard,
+// which likely takes a snapshot of `m`.
+// It returns once the size of each buffered channel is determined,
+// before all the channels are populated using goroutines.
+
 // fanIn reads elements from channels `chans` into channel `out`
 func fanIn(chans []chan Tuple, out chan Tuple) {
 	wg := sync.WaitGroup{}

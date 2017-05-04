@@ -2,6 +2,7 @@ package cmap
 
 import (
 	"encoding/json"
+	"fmt"
 	"hash/fnv"
 	"sort"
 	"strconv"
@@ -570,5 +571,30 @@ func TestUnDrainedIterBuffered(t *testing.T) {
 
 	if counter != 200 {
 		t.Error("We should have counted 200 elements.")
+	}
+}
+func TestSnapshotAndDelete(t *testing.T) {
+	m := New()
+	// Insert 100 elements.
+	Total := 100
+	for i := 0; i < Total; i++ {
+		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+	}
+	counter := 0
+	// Iterate over elements.
+	ch := m.SnapshotAndDelete()
+	for item := range ch {
+		val := item.Val
+
+		if val == nil {
+			t.Error("Expecting an object.")
+		}
+		counter++
+		fmt.Println(item.Val)
+	}
+	fmt.Println(counter)
+	fmt.Printf("now m is %v\n", m.Count())
+	if m.Count() != 0 {
+		t.Error("error in IterDelete")
 	}
 }
